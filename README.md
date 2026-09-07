@@ -4,7 +4,7 @@ Fully automated, $0-cost Telegram content bot for the Dr. Sparta FX / Pip Surgeo
 
 Posting schedule (all times EAT / UTC+3):
 1. **8:00 AM — Calendar Preview.** Always fires. Today's high-impact USD events/holidays, or "quiet day" if none.
-2. **11:00 AM — Educational.** "Did You Know" trading/market history fact, black-and-gold AI image (Gemini's own image model, Pollinations as backup).
+2. **11:00 AM — Educational.** "Did You Know" trading/market history fact, with a black-and-gold AI image from Pollinations.ai (free, no key — the only image source used, deliberately, since Gemini's image models turned out to be paid-only, no free tier).
 3. **3:00 PM — Market Pulse.** Grounded in today's real USD/JPY calendar AND live prices (gold, USD/JPY, Nasdaq, Dow as a US30 proxy).
 4. **Every 15 minutes, all day — Release Monitor.** Fires only when a high-impact USD event's actual number just appeared in the feed — actual vs. forecast, posted within ~15 min of release. Silent the other 95%+ of runs.
 
@@ -57,6 +57,6 @@ Lives in `lib/brand.js` — edit `BRAND_VOICE` for tone, `imagePrompt()` for the
 ## Known limitations (worth knowing, not hidden)
 - **Index prices are proxies, not exact CFD prices.** Free data gives you the Nasdaq 100 and Dow Jones cash index levels, which track NDX100/US30 CFDs closely but not tick-for-tick. Fine for a daily context brief; not for trading decisions.
 - **Twelve Data's exact symbols for Nasdaq/Dow (`NDX`, `DJI` in `lib/marketData.js`) haven't been live-tested against your key.** If a price comes back "unavailable" in a post, check Twelve Data's symbol search (https://api.twelvedata.com/symbol_search?symbol=nasdaq) and adjust the symbol string — the brief still generates fine even if one price fails, it just skips that line.
-- **Gemini's image free-tier daily limit isn't officially published** by Google — third-party trackers estimate roughly 500/day, which is nowhere near what this bot uses (1/day), but it's not a number Google guarantees in writing.
+- **Gemini's image models are deliberately not used.** Turned out they're paid-only with no free tier — using them would risk real charges, which conflicts with the $0 requirement. Pollinations.ai is the sole image source instead.
 - **Pollinations.ai (the image fallback) has no uptime SLA.** Rare, but if both image sources fail in the same run, the post still goes out as text-only rather than failing silently.
 - **The economic calendar feed is unofficial** (a long-standing public feed used widely in the MT4/MT5 community, not an official ForexFactory API). Reliable in practice, but could change format without notice.
