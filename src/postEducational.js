@@ -1,5 +1,5 @@
-import { sendTelegramPhotoBuffer } from "../lib/telegram.js";
-import { generateText } from "../lib/gemini.js";
+import { sendTelegramPhotoBuffer, sendTelegramPoll } from "../lib/telegram.js";
+import { generateText, generateQuizQuestion } from "../lib/gemini.js";
 import { BRAND_VOICE, SIGNATURE } from "../lib/brand.js";
 import { buildPosterSVG } from "../lib/poster.js";
 import { renderSVGToPNGBuffer } from "../lib/renderImage.js";
@@ -47,6 +47,21 @@ If this topic references a real named individual, describe their actions/strateg
 
   await sendTelegramPhotoBuffer(pngBuffer.toString("base64"), "image/png", caption);
   console.log("Educational post sent. Topic:", topic);
+
+  // Quiz-poll testing the fact just posted. Never breaks the main post if it fails —
+  // generateQuizQuestion returns null on any parsing issue instead of throwing.
+  const quiz = await generateQuizQuestion(topic, body);
+  if (quiz) {
+    await sendTelegramPoll(quiz.question, quiz.options, {
+      type: "quiz",
+      correctOptionId: quiz.correctIndex,
+      explanation: quiz.explanation,
+      isAnonymous: true,
+    });
+    console.log("Quiz poll sent.");
+  } else {
+    console.log("Quiz generation failed — post still succeeded without it.");
+  }
 }
 
 main().catch((err) => {
