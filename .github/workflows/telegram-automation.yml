@@ -1,0 +1,61 @@
+name: Pip Surgeon Telegram Automation
+
+on:
+  schedule:
+    # All times UTC. Kenya (EAT) = UTC+3 — adjust to shift posting times.
+    - cron: '0 5 * * *'    # 05:00 UTC / 08:00 EAT — Today's USD calendar preview (always fires)
+    - cron: '0 8 * * *'    # 08:00 UTC / 11:00 EAT — Educational "Did You Know" post
+    - cron: '0 12 * * *'   # 12:00 UTC / 15:00 EAT — Market Pulse brief
+    - cron: '*/15 * * * *' # every 15 min, all day — release monitor (fires only when relevant)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run a specific post manually'
+        required: true
+        default: 'educational'
+        type: choice
+        options:
+          - educational
+          - marketbrief
+          - calendarpreview
+          - newsrelease
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Determine which post to run
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=${{ github.event.inputs.mode }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "0 5 * * *" ]; then
+            echo "mode=calendarpreview" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "0 8 * * *" ]; then
+            echo "mode=educational" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "0 12 * * *" ]; then
+            echo "mode=marketbrief" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "*/15 * * * *" ]; then
+            echo "mode=newsrelease" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run post script
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
+        run: |
+          case "${{ steps.mode.outputs.mode }}" in
+            educational)     node src/postEducational.js ;;
+            marketbrief)     node src/postMarketBrief.js ;;
+            calendarpreview) node src/postNewsAlert.js ;;
+            newsrelease)     node src/postNewsRelease.js ;;
+            *) echo "Unknown mode" && exit 1 ;;
+          esac
