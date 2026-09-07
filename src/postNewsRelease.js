@@ -1,5 +1,6 @@
-import { sendTelegramMessage, sendTelegramPhotoBuffer } from "../lib/telegram.js";
-import { buildBrandedImage } from "../lib/brandedPoster.js";
+import { sendTelegramPhotoBuffer } from "../lib/telegram.js";
+import { buildPosterSVG } from "../lib/poster.js";
+import { renderSVGToPNGBuffer } from "../lib/renderImage.js";
 import { SIGNATURE } from "../lib/brand.js";
 
 const CALENDAR_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
@@ -26,13 +27,15 @@ async function getJustReleasedHighImpactUSD() {
   });
 }
 
+// Maps the real outcome to one of the existing reliable icons — no AI involved,
+// so the icon is always logically tied to what actually happened.
 function classifyResult(actual, forecast) {
   const a = parseFloat(actual);
   const f = parseFloat(forecast);
-  if (Number.isNaN(a) || Number.isNaN(f)) return { tag: "", scene: "a golden chart line holding steady at a horizontal threshold, a small pulse of light marking the exact release point" };
-  if (a > f) return { tag: " 📈 beat forecast", scene: "a golden upward arrow breaking through a calm horizontal chart line, bursts of light radiating from the breakout point" };
-  if (a < f) return { tag: " 📉 missed forecast", scene: "a golden chart line breaking downward through a calm horizontal threshold, cracks spreading outward from the break point" };
-  return { tag: " — in line with forecast", scene: "a golden chart line holding steady at a horizontal threshold, a small pulse of light marking the exact release point" };
+  if (Number.isNaN(a) || Number.isNaN(f)) return { tag: "", icon: "spikeChart" };
+  if (a > f) return { tag: " 📈 beat forecast", icon: "rocketChart" };
+  if (a < f) return { tag: " 📉 missed forecast", icon: "shatteringFloor" };
+  return { tag: " — in line with forecast", icon: "spikeChart" };
 }
 
 async function main() {
@@ -45,7 +48,7 @@ async function main() {
 
   for (const e of events) {
     const time = (e.date || "").slice(11, 16) || "TBD";
-    const { tag, scene } = classifyResult(e.actual, e.forecast);
+    const { tag, icon } = classifyResult(e.actual, e.forecast);
     const caption =
       `🚨 *JUST RELEASED — USD*\n\n*${e.title}*\n\n` +
       `Actual: *${e.actual}*${tag}\n` +
@@ -53,20 +56,9 @@ async function main() {
       `Previous: ${e.previous || "n/a"}\n` +
       `Released: ${time} UTC${SIGNATURE}`;
 
-    try {
-      const imageBuffer = await buildBrandedImage({
-        title: e.title,
-        scene,
-        badge: "Pip Surgeon · Breaking",
-        fallbackIcon: "spikeChart",
-      });
-      await sendTelegramPhotoBuffer(imageBuffer.toString("base64"), "image/png", caption);
-    } catch (err) {
-      // Image pipeline itself errored (not just AI background) — never let a release go
-      // unposted over an image bug, fall back to text-only.
-      console.error("Image build failed entirely, sending text-only:", err.message);
-      await sendTelegramMessage(caption);
-    }
+    const svg = buildPosterSVG(e.title, icon);
+    const pngBuffer = await renderSVGToPNGBuffer(svg);
+    await sendTelegramPhotoBuffer(pngBuffer.toString("base64"), "image/png", caption);
     console.log("Release alert sent:", e.title);
   }
 }
