@@ -18,7 +18,7 @@ async function getTodaysRelevantEvents() {
 }
 
 function formatPriceLine(label, value) {
-  if (value === null || value === undefined) return `- ${label}: unavailable this run`;
+  if (value === null || value === undefined) return `- ${label}: feed offline today`;
   return `- ${label}: ${value}`;
 }
 
@@ -47,19 +47,30 @@ async function main() {
 
   const prompt = `${BRAND_VOICE}
 
-Write today's "Market Pulse" brief for gold (XAUUSD), USDJPY, US30, and Nasdaq (NDX100) traders.
-Use ONLY the real data below as your factual anchor — do not invent prices, levels, or news beyond what's listed.
-Note: the index prices are Nasdaq 100 / Dow Jones cash index levels, a close free proxy for the NDX100/US30 CFDs — not identical, mention this only if directly relevant.
-Explain briefly what today's calendar and price levels mean for these instruments, and what kind of volatility/behavior to expect.
-If prices are marked unavailable, don't mention the outage mechanics — just work with what you have.
+Write today's Market Pulse brief using the real data below as your only factual anchor — never invent prices, levels, or events beyond what's listed.
+
+Output in EXACTLY this structure and nothing else. Use Telegram Markdown (single asterisks for bold). Do not add your own title, date, or heading — that is already handled separately. Leave exactly one blank line between sections. Each section is 1-2 sentences max — this is a scannable Telegram post, not an essay. No specific trade signals or price predictions.
+
+📌 *Session Context*
+[overall liquidity/macro backdrop for today]
+
+🥇 *Gold (XAUUSD)*
+[grounded in the real gold price/data below]
+
+💴 *USD/JPY*
+[grounded in the real USDJPY price/data below]
+
+📊 *US30 & Nasdaq*
+[grounded in the real index data below — if marked "feed offline", say so plainly in one short clause, don't dwell on it]
+
+⚔️ *Today's Read*
+[one sharp closing line tying it together — not a trade call, a discipline/posture note]
 
 TODAY'S CALENDAR (USD/JPY):
 ${calendarContext}
 
 CURRENT LEVELS:
-${priceContext}
-
-4-6 sentences or a tight bullet list. No specific trade signals or price predictions.`;
+${priceContext}`;
 
   const body = await generateText(prompt);
   const message = `🥇 *MARKET PULSE — Today's Watch*\n\n${body}${SIGNATURE}`;
