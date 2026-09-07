@@ -1,5 +1,5 @@
-import { sendTelegramPhoto, sendTelegramPhotoBuffer } from "../lib/telegram.js";
-import { generateText, generateImage } from "../lib/gemini.js";
+import { sendTelegramPhoto } from "../lib/telegram.js";
+import { generateText } from "../lib/gemini.js";
 import { BRAND_VOICE, SIGNATURE, imagePrompt } from "../lib/brand.js";
 
 const TOPICS = [
@@ -34,21 +34,14 @@ Write a "Did You Know" post about this trading/market history topic: "${topic}".
 
   const body = await generateText(prompt);
   const caption = `📜 *DID YOU KNOW?*\n\n${body}${SIGNATURE}`;
-  const imgPrompt = imagePrompt(topic);
 
-  try {
-    // Primary: Gemini's own image model — free tier, better quality, same API key as text.
-    const { base64, mimeType } = await generateImage(imgPrompt);
-    await sendTelegramPhotoBuffer(base64, mimeType, caption);
-    console.log("Educational post sent (Gemini image). Topic:", topic);
-  } catch (err) {
-    // Fallback: Pollinations — free, no key, no uptime SLA, but keeps the channel from going silent.
-    console.error("Gemini image generation failed, falling back to Pollinations:", err.message);
-    const encodedPrompt = encodeURIComponent(imgPrompt);
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
-    await sendTelegramPhoto(imageUrl, caption);
-    console.log("Educational post sent (Pollinations fallback). Topic:", topic);
-  }
+  // Pollinations.ai — free, no key, no billing risk. Sole image source (see lib/gemini.js
+  // for why Gemini's image models are deliberately not used).
+  const encodedPrompt = encodeURIComponent(imagePrompt(topic));
+  const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
+
+  await sendTelegramPhoto(imageUrl, caption);
+  console.log("Educational post sent. Topic:", topic);
 }
 
 main().catch((err) => {
