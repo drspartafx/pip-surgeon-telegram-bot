@@ -1,16 +1,16 @@
-import { sendTelegramMessage } from "../lib/telegram.js";
+import { sendTelegramPhotoBuffer } from "../lib/telegram.js";
 import { generateText } from "../lib/gemini.js";
 import { getLivePrices } from "../lib/marketData.js";
+import { buildBrandedImage } from "../lib/brandedPoster.js";
 import { BRAND_VOICE, SIGNATURE } from "../lib/brand.js";
 
 const CALENDAR_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
-const WATCHED_CURRENCIES = ["USD", "JPY"]; // covers XAUUSD, USDJPY, US30, NDX100 (all USD-driven)
+const WATCHED_CURRENCIES = ["USD", "JPY"];
 
 async function getTodaysRelevantEvents() {
   const res = await fetch(CALENDAR_URL);
   const events = await res.json();
   const today = new Date().toISOString().slice(0, 10);
-
   return events.filter((e) => {
     const eventDate = (e.date || "").slice(0, 10);
     return eventDate === today && WATCHED_CURRENCIES.includes(e.country);
@@ -33,9 +33,7 @@ async function main() {
   const prices = await getLivePrices();
 
   const calendarContext = events.length
-    ? events
-        .map((e) => `- ${e.date} | ${e.country} | ${e.impact} impact | ${e.title} (forecast: ${e.forecast || "n/a"}, previous: ${e.previous || "n/a"})`)
-        .join("\n")
+    ? events.map((e) => `- ${e.date} | ${e.country} | ${e.impact} impact | ${e.title} (forecast: ${e.forecast || "n/a"}, previous: ${e.previous || "n/a"})`).join("\n")
     : "No scheduled USD/JPY economic events found for today in the feed.";
 
   const priceContext = [
@@ -49,7 +47,7 @@ async function main() {
 
 Write today's Market Pulse brief using the real data below as your only factual anchor — never invent prices, levels, or events beyond what's listed.
 
-Output in EXACTLY this structure and nothing else. Use Telegram Markdown (single asterisks for bold). Do not add your own title, date, or heading — that is already handled separately. Leave exactly one blank line between sections. Each section is 1-2 sentences max — this is a scannable Telegram post, not an essay. No specific trade signals or price predictions.
+Output in EXACTLY this structure and nothing else. Use Telegram Markdown (single asterisks for bold). Do not add your own title, date, or heading. Leave exactly one blank line between sections. Each section is 1-2 sentences max.
 
 📌 *Session Context*
 [overall liquidity/macro backdrop for today]
@@ -61,10 +59,10 @@ Output in EXACTLY this structure and nothing else. Use Telegram Markdown (single
 [grounded in the real USDJPY price/data below]
 
 📊 *US30 & Nasdaq*
-[grounded in the real index data below — if marked "feed offline", say so plainly in one short clause, don't dwell on it]
+[grounded in the real index data below — if marked "feed offline", say so plainly in one short clause]
 
 ⚔️ *Today's Read*
-[one sharp closing line tying it together — not a trade call, a discipline/posture note]
+[one sharp closing line — a discipline/posture note, not a trade call]
 
 TODAY'S CALENDAR (USD/JPY):
 ${calendarContext}
@@ -73,9 +71,16 @@ CURRENT LEVELS:
 ${priceContext}`;
 
   const body = await generateText(prompt);
-  const message = `🥇 *MARKET PULSE — Today's Watch*\n\n${body}${SIGNATURE}`;
+  const caption = `🥇 *MARKET PULSE — Today's Watch*\n\n${body}${SIGNATURE}`;
 
-  await sendTelegramMessage(message);
+  const imageBuffer = await buildBrandedImage({
+    title: "MARKET PULSE",
+    scene: "a glowing world map with pulsing light nodes over major financial capitals, viewed from a dark trading floor, holographic depth",
+    badge: "Pip Surgeon · Market Pulse",
+    fallbackIcon: "globeDollar",
+  });
+
+  await sendTelegramPhotoBuffer(imageBuffer.toString("base64"), "image/png", caption);
   console.log("Market brief sent.");
 }
 
