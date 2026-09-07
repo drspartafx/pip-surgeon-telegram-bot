@@ -1,7 +1,8 @@
 import { sendTelegramPhotoBuffer } from "../lib/telegram.js";
 import { generateText } from "../lib/gemini.js";
 import { getLivePrices } from "../lib/marketData.js";
-import { buildBrandedImage } from "../lib/brandedPoster.js";
+import { buildPosterSVG } from "../lib/poster.js";
+import { renderSVGToPNGBuffer } from "../lib/renderImage.js";
 import { BRAND_VOICE, SIGNATURE } from "../lib/brand.js";
 
 const CALENDAR_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
@@ -73,14 +74,12 @@ ${priceContext}`;
   const body = await generateText(prompt);
   const caption = `🥇 *MARKET PULSE — Today's Watch*\n\n${body}${SIGNATURE}`;
 
-  const imageBuffer = await buildBrandedImage({
-    title: "MARKET PULSE",
-    scene: "a glowing world map with pulsing light nodes over major financial capitals, viewed from a dark trading floor, holographic depth",
-    badge: "Pip Surgeon · Market Pulse",
-    fallbackIcon: "globeDollar",
-  });
+  // Reliable no-AI image, same as the educational posts — consistent daily visual
+  // identity for this recurring feature, zero chance of an off-topic render.
+  const svg = buildPosterSVG("MARKET PULSE", "globeDollar");
+  const pngBuffer = await renderSVGToPNGBuffer(svg);
 
-  await sendTelegramPhotoBuffer(imageBuffer.toString("base64"), "image/png", caption);
+  await sendTelegramPhotoBuffer(pngBuffer.toString("base64"), "image/png", caption);
   console.log("Market brief sent.");
 }
 
