@@ -3,6 +3,7 @@ import { generateText } from "../lib/gemini.js";
 import { buildPosterSVG } from "../lib/poster.js";
 import { renderSVGToPNGBuffer } from "../lib/renderImage.js";
 import { BRAND_VOICE, SIGNATURE } from "../lib/brand.js";
+import { SYSTEM_ICONS } from "../lib/iconAssignments.js";
 
 const CALENDAR_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
 
@@ -40,7 +41,7 @@ If the list is empty, say plainly it was a quiet data week and pivot to one gene
   const body = await generateText(prompt);
   const caption = `📊 *WEEK IN REVIEW*\n\n${body}${SIGNATURE}`;
 
-  const svg = buildPosterSVG("WEEK IN REVIEW", "candlestickChannel");
+  const svg = buildPosterSVG("WEEK IN REVIEW", SYSTEM_ICONS.weeklyDigest);
   const pngBuffer = await renderSVGToPNGBuffer(svg);
 
   await sendTelegramPhotoBuffer(pngBuffer.toString("base64"), "image/png", caption);
