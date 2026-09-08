@@ -1,14 +1,6 @@
 name: Pip Surgeon Telegram Automation
 
 on:
-  schedule:
-    # All times UTC. Kenya (EAT) = UTC+3 — adjust to shift posting times.
-    - cron: '0 5 * * *'    # 05:00 UTC / 08:00 EAT — Today's USD calendar preview (always fires)
-    - cron: '0 8 * * *'    # 08:00 UTC / 11:00 EAT — Educational "Did You Know" post + quiz poll
-    - cron: '0 12 * * *'   # 12:00 UTC / 15:00 EAT — Market Pulse brief
-    - cron: '0 6 * * 1'    # 06:00 UTC Monday only / 09:00 EAT — Weekly sentiment poll
-    - cron: '0 15 * * 5'   # 15:00 UTC Friday only / 18:00 EAT — Week in Review digest
-    - cron: '*/15 * * * *' # every 15 min, all day — release monitor + pre-NFP/CPI poll (fire only when relevant)
   workflow_dispatch:
     inputs:
       mode:
@@ -40,22 +32,7 @@ jobs:
 
       - name: Determine which post to run
         id: mode
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "mode=${{ github.event.inputs.mode }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = "0 5 * * *" ]; then
-            echo "mode=calendarpreview" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = "0 8 * * *" ]; then
-            echo "mode=educational" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = "0 12 * * *" ]; then
-            echo "mode=marketbrief" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = "0 6 * * 1" ]; then
-            echo "mode=weeklypoll" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = "0 15 * * 5" ]; then
-            echo "mode=weeklydigest" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = "*/15 * * * *" ]; then
-            echo "mode=newsrelease" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "mode=${{ github.event.inputs.mode }}" >> "$GITHUB_OUTPUT"
 
       - name: Run post script
         env:
