@@ -1,9 +1,25 @@
-import { sendTelegramPoll } from "../lib/telegram.js";
+import { sendTelegramPhotoBuffer, sendTelegramPoll } from "../lib/telegram.js";
+import { generateText } from "../lib/gemini.js";
+import { buildPosterSVG } from "../lib/poster.js";
+import { renderSVGToPNGBuffer } from "../lib/renderImage.js";
+import { BRAND_VOICE, SIGNATURE } from "../lib/brand.js";
 
-// Simple weekly sentiment poll — pure engagement, no signals given.
-// Scheduled for Monday only via the cron expression itself (day-of-week = 1),
-// so this script doesn't need any day-checking logic of its own.
 async function main() {
+  const prompt = `${BRAND_VOICE}
+
+Write a short "New Week Ahead" briefing for Sunday evening, as traders prepare for the week's market open.
+Set the tone for the week — sharp, composed, not hype. Include one line reminding traders to plan setups rather than chase, and one line noting a USD sentiment poll follows this post.
+3-4 sentences total. No hashtags, no title line.`;
+
+  const body = await generateText(prompt);
+  const caption = `🗓️ *NEW WEEK AHEAD*\n\n${body}${SIGNATURE}`;
+
+  const svg = buildPosterSVG("NEW WEEK AHEAD", "candlestickChannel");
+  const pngBuffer = await renderSVGToPNGBuffer(svg);
+
+  await sendTelegramPhotoBuffer(pngBuffer.toString("base64"), "image/png", caption);
+  console.log("Weekly briefing sent.");
+
   await sendTelegramPoll(
     "This week — where's the dollar heading?",
     ["Strengthening 💪", "Weakening 📉", "Range-bound / choppy 🔁"]
