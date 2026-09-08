@@ -3,6 +3,7 @@ import { generateText } from "../lib/gemini.js";
 import { buildPosterSVG } from "../lib/poster.js";
 import { renderSVGToPNGBuffer } from "../lib/renderImage.js";
 import { BRAND_VOICE, SIGNATURE } from "../lib/brand.js";
+import { SYSTEM_ICONS } from "../lib/iconAssignments.js";
 
 async function main() {
   const prompt = `${BRAND_VOICE}
@@ -14,7 +15,7 @@ Set the tone for the week — sharp, composed, not hype. Include one line remind
   const body = await generateText(prompt);
   const caption = `🗓️ *NEW WEEK AHEAD*\n\n${body}${SIGNATURE}`;
 
-  const svg = buildPosterSVG("NEW WEEK AHEAD", "candlestickChannel");
+  const svg = buildPosterSVG("NEW WEEK AHEAD", SYSTEM_ICONS.weeklyBriefing);
   const pngBuffer = await renderSVGToPNGBuffer(svg);
 
   await sendTelegramPhotoBuffer(pngBuffer.toString("base64"), "image/png", caption);
