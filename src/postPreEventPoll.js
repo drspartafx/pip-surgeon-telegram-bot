@@ -49,8 +49,8 @@ async function main() {
     const time = (e.date || "").slice(11, 16) || "soon";
     await sendTelegramPoll(
       `${e.title} drops at ${time} UTC — your call?`,
-      ["Beats forecast 📈", "Misses forecast 📉", "In line with forecast ➡️"],
-      { isAnonymous: false }
+      ["Beats forecast 📈", "Misses forecast 📉", "In line with forecast ➡️"]
+      // Channels only support anonymous polls — non-anonymous is a group-only feature.
     );
     console.log("Pre-event poll sent:", e.title);
   }
