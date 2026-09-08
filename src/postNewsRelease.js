@@ -2,6 +2,7 @@ import { sendTelegramPhotoBuffer } from "../lib/telegram.js";
 import { buildPosterSVG } from "../lib/poster.js";
 import { renderSVGToPNGBuffer } from "../lib/renderImage.js";
 import { SIGNATURE } from "../lib/brand.js";
+import { SYSTEM_ICONS } from "../lib/iconAssignments.js";
 
 const CALENDAR_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
 const LOOKBACK_MINUTES = 20;
@@ -32,10 +33,10 @@ async function getJustReleasedHighImpactUSD() {
 function classifyResult(actual, forecast) {
   const a = parseFloat(actual);
   const f = parseFloat(forecast);
-  if (Number.isNaN(a) || Number.isNaN(f)) return { tag: "", icon: "spikeChart" };
-  if (a > f) return { tag: " 📈 beat forecast", icon: "rocketChart" };
-  if (a < f) return { tag: " 📉 missed forecast", icon: "shatteringFloor" };
-  return { tag: " — in line with forecast", icon: "spikeChart" };
+  if (Number.isNaN(a) || Number.isNaN(f)) return { tag: "", icon: SYSTEM_ICONS.releaseInline };
+  if (a > f) return { tag: " 📈 beat forecast", icon: SYSTEM_ICONS.releaseBeat };
+  if (a < f) return { tag: " 📉 missed forecast", icon: SYSTEM_ICONS.releaseMiss };
+  return { tag: " — in line with forecast", icon: SYSTEM_ICONS.releaseInline };
 }
 
 async function main() {
