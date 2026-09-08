@@ -6,8 +6,8 @@ import { sendTelegramPoll } from "../lib/telegram.js";
 async function main() {
   await sendTelegramPoll(
     "This week — where's the dollar heading?",
-    ["Strengthening 💪", "Weakening 📉", "Range-bound / choppy 🔁"],
-    { isAnonymous: false } // visible votes — a little social stake, matches the community's competitive spirit
+    ["Strengthening 💪", "Weakening 📉", "Range-bound / choppy 🔁"]
+    // Channels only support anonymous polls — non-anonymous is a group-only feature.
   );
   console.log("Weekly sentiment poll sent.");
 }
