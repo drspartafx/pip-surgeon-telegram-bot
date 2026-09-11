@@ -1,8 +1,9 @@
-import { sendTelegramPhotoBuffer } from "../lib/telegram.js";
+import { sendTelegramPhotoBuffer, sendTelegramMessage } from "../lib/telegram.js";
 import { buildPosterSVG } from "../lib/poster.js";
 import { renderSVGToPNGBuffer } from "../lib/renderImage.js";
 import { SIGNATURE } from "../lib/brand.js";
 import { SYSTEM_ICONS } from "../lib/iconAssignments.js";
+import { loadNotifiedEvents, saveNotifiedEvents, pruneOld, eventKey, formatLocalTime } from "../lib/eventState.js";
 
 const CALENDAR_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
 const LOOKBACK_MINUTES = 20;
@@ -28,8 +29,6 @@ async function getJustReleasedHighImpactUSD() {
   });
 }
 
-// Maps the real outcome to one of the existing reliable icons — no AI involved,
-// so the icon is always logically tied to what actually happened.
 function classifyResult(actual, forecast) {
   const a = parseFloat(actual);
   const f = parseFloat(forecast);
@@ -41,6 +40,8 @@ function classifyResult(actual, forecast) {
 
 async function main() {
   const events = await getJustReleasedHighImpactUSD();
+  let notified = loadNotifiedEvents();
+  let changed = false;
 
   if (events.length === 0) {
     console.log("No newly released high-impact USD events this run. Skipping — expected most runs.");
@@ -48,19 +49,36 @@ async function main() {
   }
 
   for (const e of events) {
-    const time = (e.date || "").slice(11, 16) || "TBD";
+    const key = eventKey("release", e);
+    if (notified.includes(key)) {
+      console.log("Already posted this release, skipping duplicate:", e.title);
+      continue;
+    }
+
+    const localTime = formatLocalTime(e.date);
     const { tag, icon } = classifyResult(e.actual, e.forecast);
     const caption =
       `🚨 *JUST RELEASED — USD*\n\n*${e.title}*\n\n` +
       `Actual: *${e.actual}*${tag}\n` +
       `Forecast: ${e.forecast || "n/a"}\n` +
       `Previous: ${e.previous || "n/a"}\n` +
-      `Released: ${time} UTC${SIGNATURE}`;
+      `Released: ${localTime}${SIGNATURE}`;
 
-    const svg = buildPosterSVG(e.title, icon);
-    const pngBuffer = await renderSVGToPNGBuffer(svg);
-    await sendTelegramPhotoBuffer(pngBuffer.toString("base64"), "image/png", caption);
+    try {
+      const svg = buildPosterSVG(e.title, icon);
+      const pngBuffer = await renderSVGToPNGBuffer(svg);
+      await sendTelegramPhotoBuffer(pngBuffer.toString("base64"), "image/png", caption);
+    } catch (err) {
+      console.error("Image build failed entirely, sending text-only:", err.message);
+      await sendTelegramMessage(caption);
+    }
     console.log("Release alert sent:", e.title);
+    notified.push(key);
+    changed = true;
+  }
+
+  if (changed) {
+    saveNotifiedEvents(pruneOld(notified));
   }
 }
 
