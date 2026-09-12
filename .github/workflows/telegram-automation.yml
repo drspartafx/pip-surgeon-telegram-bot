@@ -16,6 +16,7 @@ on:
           - weeklypoll
           - preeventpoll
           - weeklydigest
+          - weekendreset
 
 jobs:
   post:
@@ -51,6 +52,7 @@ jobs:
             calendarpreview) node src/postNewsAlert.js ;;
             weeklypoll)      node src/postWeeklyPoll.js ;;
             weeklydigest)    node src/postWeeklyDigest.js ;;
+            weekendreset)    node src/postWeekendReset.js ;;
             preeventpoll)    node src/postPreEventPoll.js ;;
             newsrelease)
               node src/postNewsRelease.js
