@@ -1,5 +1,6 @@
 import { sendTelegramPoll } from "../lib/telegram.js";
 import { loadNotifiedEvents, saveNotifiedEvents, pruneOld, eventKey, formatLocalTime } from "../lib/eventState.js";
+import { loadPendingPolls, savePendingPolls, prunePendingPolls } from "../lib/pollState.js";
 
 const CALENDAR_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
 const TARGET_KEYWORDS = ["non-farm", "nonfarm", "payroll", "cpi", "consumer price index"];
@@ -36,6 +37,7 @@ async function getUpcomingTargetEvents() {
 async function main() {
   const events = await getUpcomingTargetEvents();
   let notified = loadNotifiedEvents();
+  let pending = loadPendingPolls();
   let changed = false;
 
   if (events.length === 0) {
@@ -51,18 +53,34 @@ async function main() {
     }
 
     const localTime = formatLocalTime(e.date);
-    await sendTelegramPoll(
+    const sent = await sendTelegramPoll(
       `${e.title} drops at ${localTime} — your call?`,
       ["Beats forecast 📈", "Misses forecast 📉", "In line with forecast ➡️"]
       // Channels only support anonymous polls — non-anonymous is a group-only feature.
     );
     console.log("Pre-event poll sent:", e.title);
+
+    // Register the poll so postPollVerdict.js can resolve it after the release.
+    const messageId = sent?.result?.message_id;
+    if (messageId) {
+      pending.push({
+        key,
+        messageId,
+        eventTitle: e.title,
+        eventDate: e.date,
+        forecast: e.forecast ?? null,
+      });
+    } else {
+      console.error("Could not read message_id from sendPoll response — verdict will be skipped for this event.");
+    }
+
     notified.push(key);
     changed = true;
   }
 
   if (changed) {
     saveNotifiedEvents(pruneOld(notified));
+    savePendingPolls(prunePendingPolls(pending));
   }
 }
 
