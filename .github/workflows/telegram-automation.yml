@@ -17,6 +17,7 @@ on:
           - preeventpoll
           - weeklydigest
           - weekendreset
+          - pollverdict
 
 jobs:
   post:
@@ -54,8 +55,13 @@ jobs:
             weeklydigest)    node src/postWeeklyDigest.js ;;
             weekendreset)    node src/postWeekendReset.js ;;
             preeventpoll)    node src/postPreEventPoll.js ;;
+            pollverdict)     node src/postPollVerdict.js ;;
             newsrelease)
+              # One 15-minute tick drives the whole event pipeline in order:
+              # announce the result, resolve any prediction poll, then look ahead
+              # to the next upcoming release. Each step no-ops when irrelevant.
               node src/postNewsRelease.js
+              node src/postPollVerdict.js
               node src/postPreEventPoll.js
               ;;
             *) echo "Unknown mode" && exit 1 ;;
