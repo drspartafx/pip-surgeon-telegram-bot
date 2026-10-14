@@ -38,6 +38,16 @@ function classifyResult(actual, forecast) {
   return { tag: " — in line with forecast", icon: SYSTEM_ICONS.releaseInline };
 }
 
+function groupByReleaseTime(events) {
+  const map = new Map();
+  for (const e of events) {
+    if (!map.has(e.date)) map.set(e.date, []);
+    map.get(e.date).push(e);
+  }
+  return [...map.values()];
+}
+
+// One combined alert per release time — CPI day is one post, not four.
 async function main() {
   const events = await getJustReleasedHighImpactUSD();
   let notified = loadNotifiedEvents();
@@ -48,32 +58,35 @@ async function main() {
     return;
   }
 
-  for (const e of events) {
-    const key = eventKey("release", e);
-    if (notified.includes(key)) {
-      console.log("Already posted this release, skipping duplicate:", e.title);
+  for (const group of groupByReleaseTime(events)) {
+    const fresh = group.filter((e) => !notified.includes(eventKey("release", e)));
+    if (fresh.length === 0) {
+      console.log("Already posted this release time, skipping duplicate:", group[0].title);
       continue;
     }
 
-    const localTime = formatLocalTime(e.date);
-    const { tag, icon } = classifyResult(e.actual, e.forecast);
-    const caption =
-      `🚨 *JUST RELEASED — USD*\n\n*${e.title}*\n\n` +
-      `Actual: *${e.actual}*${tag}\n` +
-      `Forecast: ${e.forecast || "n/a"}\n` +
-      `Previous: ${e.previous || "n/a"}\n` +
-      `Released: ${localTime}${SIGNATURE}`;
+    const localTime = formatLocalTime(fresh[0].date);
+    const results = fresh.map((e) => ({ e, ...classifyResult(e.actual, e.forecast) }));
+    const lead = results[0];
 
+    const blocks = results.map(
+      ({ e, tag }) =>
+        `*${e.title}*\nActual: *${e.actual}*${tag}\nForecast: ${e.forecast || "n/a"} · Previous: ${e.previous || "n/a"}`
+    );
+    const caption =
+      `🚨 *JUST RELEASED — USD*\n\n${blocks.join("\n\n")}\n\nReleased: ${localTime}${SIGNATURE}`;
+
+    const posterTitle = fresh.length === 1 ? fresh[0].title : `${fresh[0].title} +${fresh.length - 1}`;
     try {
-      const svg = buildPosterSVG(e.title, icon);
+      const svg = buildPosterSVG(posterTitle, lead.icon);
       const pngBuffer = await renderSVGToPNGBuffer(svg);
       await sendTelegramPhotoBuffer(pngBuffer.toString("base64"), "image/png", caption);
     } catch (err) {
       console.error("Image build failed entirely, sending text-only:", err.message);
       await sendTelegramMessage(caption);
     }
-    console.log("Release alert sent:", e.title);
-    notified.push(key);
+    console.log("Release alert sent:", fresh.map((e) => e.title).join(" | "));
+    fresh.forEach((e) => notified.push(eventKey("release", e)));
     changed = true;
   }
 
