@@ -1,9 +1,30 @@
 [
   {
-    "key": "preevent|USD|Non-Farm Employment Change|2026-10-02T08:30:00-04:00",
-    "messageId": 447,
-    "eventTitle": "Non-Farm Employment Change",
-    "eventDate": "2026-10-02T08:30:00-04:00",
-    "forecast": "89K"
+    "key": "preevent|USD|Core CPI m/m|2026-10-14T08:30:00-04:00",
+    "messageId": 478,
+    "eventTitle": "Core CPI m/m",
+    "eventDate": "2026-10-14T08:30:00-04:00",
+    "forecast": "0.2%"
+  },
+  {
+    "key": "preevent|USD|Core CPI y/y|2026-10-14T08:30:00-04:00",
+    "messageId": 479,
+    "eventTitle": "Core CPI y/y",
+    "eventDate": "2026-10-14T08:30:00-04:00",
+    "forecast": "2.5%"
+  },
+  {
+    "key": "preevent|USD|CPI m/m|2026-10-14T08:30:00-04:00",
+    "messageId": 480,
+    "eventTitle": "CPI m/m",
+    "eventDate": "2026-10-14T08:30:00-04:00",
+    "forecast": "0.6%"
+  },
+  {
+    "key": "preevent|USD|CPI y/y|2026-10-14T08:30:00-04:00",
+    "messageId": 481,
+    "eventTitle": "CPI y/y",
+    "eventDate": "2026-10-14T08:30:00-04:00",
+    "forecast": "3.6%"
   }
 ]
