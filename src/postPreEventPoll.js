@@ -34,6 +34,31 @@ async function getUpcomingTargetEvents() {
   });
 }
 
+// Several calendar lines often share one release time (e.g. CPI m/m, CPI y/y, Core CPI m/m,
+// Core CPI y/y all land at 08:30 ET). The crowd is predicting ONE release, so we send ONE poll
+// per release time, built on the headline line (the verdict resolves against that line).
+function pickHeadline(group) {
+  const score = (t) => {
+    const l = t.toLowerCase();
+    let s = 0;
+    if (l.includes("core")) s -= 2;
+    if (l.includes("y/y")) s -= 1;
+    if (l.includes("non-farm") || l.includes("nonfarm")) s += 2;
+    if (l.includes("m/m")) s += 1;
+    return s;
+  };
+  return [...group].sort((a, b) => score(b.title || "") - score(a.title || ""))[0];
+}
+
+function groupByReleaseTime(events) {
+  const map = new Map();
+  for (const e of events) {
+    if (!map.has(e.date)) map.set(e.date, []);
+    map.get(e.date).push(e);
+  }
+  return [...map.values()];
+}
+
 async function main() {
   const events = await getUpcomingTargetEvents();
   let notified = loadNotifiedEvents();
@@ -45,12 +70,14 @@ async function main() {
     return;
   }
 
-  for (const e of events) {
-    const key = eventKey("preevent", e);
-    if (notified.includes(key)) {
-      console.log("Already polled for this event, skipping duplicate:", e.title);
+  for (const group of groupByReleaseTime(events)) {
+    const e = pickHeadline(group);
+    const keys = group.map((g) => eventKey("preevent", g));
+    if (keys.some((k) => notified.includes(k))) {
+      console.log("Already polled for this release time, skipping duplicate:", e.title);
       continue;
     }
+    const key = eventKey("preevent", e);
 
     const localTime = formatLocalTime(e.date);
     const sent = await sendTelegramPoll(
@@ -60,7 +87,6 @@ async function main() {
     );
     console.log("Pre-event poll sent:", e.title);
 
-    // Register the poll so postPollVerdict.js can resolve it after the release.
     const messageId = sent?.result?.message_id;
     if (messageId) {
       pending.push({
@@ -74,7 +100,7 @@ async function main() {
       console.error("Could not read message_id from sendPoll response — verdict will be skipped for this event.");
     }
 
-    notified.push(key);
+    notified.push(...keys);
     changed = true;
   }
 
